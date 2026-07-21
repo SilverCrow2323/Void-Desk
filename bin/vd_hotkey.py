@@ -76,7 +76,21 @@ def onboard_toggle():
         log("nascondo matchbox (SIGTERM)")
         sig_all(pids, signal.SIGTERM)
     else:
-        log("avvio matchbox-keyboard")
+        lay = "default"
+        try:
+            import json
+            lay = json.load(open(os.path.join(
+                os.path.dirname(MNT), "desk_config.json"))
+                ).get("kbd_mb", "default")
+        except Exception:
+            pass
+        log("avvio matchbox-keyboard (%s)" % lay)
+        if lay and lay != "default":
+            session_cmd(["matchbox-keyboard", lay])
+            time.sleep(0.6)
+            if kbd_pids():
+                return
+            log("layout %s assente: fallback default" % lay)
         session_cmd(["matchbox-keyboard"])
 
 

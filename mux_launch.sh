@@ -8,7 +8,10 @@ DATA="$APP_DIR/data"
 mkdir -p "$DATA"
 LOG="$DATA/voiddesk.log"
 
-echo "$(date) === VOIDDESK v5.1 launch (dir: $APP_DIR) ===" >>"$LOG"
+. "$APP_DIR/lib/glyph_install.sh"
+INSTALL_GLYPH "$APP_DIR/resources/voiddesk.png" "voiddesk"
+
+echo "$(date) === VOIDDESK v9.0 launch (dir: $APP_DIR) ===" >>"$LOG"
 
 PY3="$(command -v python3)"
 if [ -z "$PY3" ]; then
@@ -130,6 +133,16 @@ while :; do
 		APPD="$(sed -n 1p "$DATA/.muos_app" 2>/dev/null)"
 		APPN="$(sed -n 2p "$DATA/.muos_app" 2>/dev/null)"
 		echo "$(date) avvio app muOS: $APPN" >>"$LOG"
+		GOV="$(cat "$DATA/.muos_gov" 2>/dev/null)"
+		GPOL="/sys/devices/system/cpu/cpufreq/policy0/scaling_governor"
+		OLDGOV=""
+		if [ -n "$GOV" ] && [ "$GOV" != "default" ] && [ -w "$GPOL" ]; then
+			OLDGOV="$(cat "$GPOL" 2>/dev/null)"
+			for P in /sys/devices/system/cpu/cpufreq/policy*; do
+				echo "$GOV" >"$P/scaling_governor" 2>/dev/null
+			done
+			echo "$(date) governor app: $GOV" >>"$LOG"
+		fi
 		if [ -f "$APPD/mux_launch.sh" ]; then
 			# stesso patto di muOS: schermo tutto suo, poi si torna
 			( cd "$APPD" && if [ -x ./mux_launch.sh ]; then \
@@ -138,6 +151,11 @@ while :; do
 			echo "$(date) app muOS terminata ($?)" >>"$LOG"
 		else
 			echo "$(date) script app non trovato: $APPD" >>"$LOG"
+		fi
+		if [ -n "$OLDGOV" ]; then
+			for P in /sys/devices/system/cpu/cpufreq/policy*; do
+				echo "$OLDGOV" >"$P/scaling_governor" 2>/dev/null
+			done
 		fi
 		MENULOAD
 		;;

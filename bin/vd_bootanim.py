@@ -233,18 +233,62 @@ def anim_lxde(pt, fb):
 
 
 # ------------------------------------------------------------- BGM -----
+def bgm_log(msg):
+    """Il chiamante rediriges gia' stdout su xfce_session.log: un print
+    qui e' gia' un log persistente, niente di piu' da fare."""
+    print("[vd_bootanim/bgm] " + msg)
+
+
 def synth_bgm(env):
     """Jingle di avvio sintetizzato: campane luminose + delay, quel sapore
     da boot di console anni '99. Tre spartiti diversi, ~3 secondi, zero
-    file audio. Se il mixer non c'e', si parte in silenzio."""
+    file audio.
+
+    Se non si sente nulla, prima la causa restava invisibile (fallimento
+    silenzioso): ora ogni passo che fallisce lo scrive nel log, e prima
+    di arrendersi si prova una piccola cascata di formati — su alcuni
+    ALSA embedded il mixer rifiuta 22050 mono e vuole 44100 stereo, o
+    viceversa."""
+    if os.environ.get("VD_BGM_OFF"):
+        bgm_log("disattivato da VD_BGM_OFF")
+        return None
     try:
         import pygame
-        pygame.mixer.init(22050, -16, 1, 512)
-    except Exception:
+    except Exception as e:
+        bgm_log("pygame non importabile: %s" % e)
         return None
+
+    drv = os.environ.get("VD_BGM_DRIVER")
+    if drv:
+        os.environ["SDL_AUDIODRIVER"] = drv
+
+    rate_env = os.environ.get("VD_BGM_RATE")
+    combos = ([(int(rate_env), -16, 1, 512)] if rate_env else []) + [
+        (22050, -16, 1, 512), (44100, -16, 2, 1024),
+        (44100, -16, 1, 1024), (48000, -16, 2, 1024)]
+    ok = False
+    for freq, size, ch, buf_sz in combos:
+        try:
+            pygame.mixer.quit()
+        except Exception:
+            pass
+        try:
+            pygame.mixer.init(freq, size, ch, buf_sz)
+            ok = True
+            got = pygame.mixer.get_init()
+            bgm_log("mixer OK richiesto=%r ottenuto=%r driver=%s"
+                    % ((freq, size, ch), got,
+                       os.environ.get("SDL_AUDIODRIVER", "(default)")))
+            SR = got[0] if got else freq
+            break
+        except Exception as e:
+            bgm_log("mixer.init%r fallito: %s" % ((freq, size, ch), e))
+    if not ok:
+        bgm_log("nessun formato audio disponibile: silenzio")
+        return None
+
     import math as m
     import random as r
-    SR = 22050
     N = int(SR * 3.0)
     buf = [0.0] * N
 
@@ -295,14 +339,20 @@ def synth_bgm(env):
     D = int(0.18 * SR)                    # eco da sala giochi
     for i in range(D, N):
         buf[i] += buf[i - D] * 0.32
-    out = bytearray()
+    raw = bytearray()
     for v in buf:
         s = max(-1.0, min(1.0, v * 0.8))
-        out += int(s * 32767).to_bytes(2, "little", signed=True)
+        raw += int(s * 32767).to_bytes(2, "little", signed=True)
+    got = pygame.mixer.get_init()
+    if got and got[2] == 2:               # il device vuole stereo:
+        stereo = bytearray()              # duplico il canale mono
+        for i in range(0, len(raw), 2):
+            stereo += raw[i:i + 2] * 2
+        raw = stereo
     try:
-        import pygame
-        return pygame.mixer.Sound(buffer=bytes(out))
-    except Exception:
+        return pygame.mixer.Sound(buffer=bytes(raw))
+    except Exception as e:
+        bgm_log("Sound(buffer=...) fallito: %s" % e)
         return None
 
 
@@ -318,15 +368,23 @@ def main():
     bgm = synth_bgm(env)
     if bgm:
         try:
+            import pygame
             bgm.play()
-        except Exception:
-            pass
+            busy = pygame.mixer.get_busy()
+            bgm_log("play() chiamato, get_busy()=%r" % busy)
+        except Exception as e:
+            bgm_log("play() fallito: %s" % e)
     ANIMS.get(env, anim_xfce)(pt, fb)
     time.sleep(HOLD)
     if bgm:
         try:
             bgm.fadeout(220)
             time.sleep(0.24)
+        except Exception:
+            pass
+        try:
+            import pygame
+            pygame.mixer.quit()
         except Exception:
             pass
     return 0

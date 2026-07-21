@@ -40,6 +40,101 @@ def draw(surf, key, x, y, sz, col):
         pygame.draw.arc(surf, col, box, math.radians(a0), math.radians(a1),
                         max(1, int(w * u)))
 
+    # ---- icone di sezione v6.0 ------------------------------------
+    if key == "forge":                     # incudine: software
+        rect(3, 8, 18, 4, 0)
+        rect(9, 12, 6, 4, 0)
+        rect(6, 16, 12, 3, 0)
+        line((3, 8), (1, 11), 2)
+        return
+    if key == "toolbox":                   # cassetta attrezzi
+        rect(3, 10, 18, 9, 2, 1)
+        rect(9, 6, 6, 4, 2)
+        line((3, 14), (21, 14))
+        line((11, 13), (13, 13), 3)
+        return
+    if key == "uplink":                    # antenna
+        line((12, 21), (12, 10), 2)
+        line((6, 21), (12, 14), 2)
+        line((18, 21), (12, 14), 2)
+        circ(12, 8, 2, 0)
+        arc(12, 8, 5, 20, 160)
+        arc(12, 8, 8, 30, 150)
+        return
+    if key == "workshop":                  # chiave inglese
+        circ(7, 7, 4, 2)
+        rect(6, 6, 3, 3, 0)
+        line((9, 10), (18, 19), 3)
+        rect(16, 17, 5, 5, 0, 1)
+        return
+    if key == "book":                      # manuale aperto
+        line((12, 5), (12, 20), 2)
+        line((12, 5), (4, 7), 2)
+        line((12, 5), (20, 7), 2)
+        line((4, 7), (4, 19), 2)
+        line((20, 7), (20, 19), 2)
+        line((4, 19), (12, 20), 2)
+        line((20, 19), (12, 20), 2)
+        line((6, 10), (10, 11))
+        line((14, 11), (18, 10))
+        return
+    if key == "power":                     # spegnimento
+        circ(12, 13, 8, 2)
+        rect(11, 3, 3, 9, 0)
+        return
+    if key == "storage":                   # partizioni impilate
+        rect(4, 4, 16, 5, 2, 1)
+        rect(4, 11, 16, 5, 2, 1)
+        rect(4, 18, 16, 4, 2, 1)
+        rect(6, 6, 2, 2, 0)
+        rect(6, 13, 2, 2, 0)
+        return
+    if key == "clock":                     # orologio
+        circ(12, 12, 9, 2)
+        line((12, 12), (12, 6), 2)
+        line((12, 12), (17, 14), 2)
+        return
+    if key == "calc":                      # calcolatrice
+        rect(5, 3, 14, 18, 2, 1)
+        rect(7, 5, 10, 4, 2)
+        for gy in (11, 15):
+            for gx in (8, 12, 16):
+                rect(gx, gy, 2, 2, 0)
+        return
+    if key == "shield":                    # protetta / sistema
+        line((12, 3), (20, 6), 2)
+        line((12, 3), (4, 6), 2)
+        line((4, 6), (4, 13), 2)
+        line((20, 6), (20, 13), 2)
+        line((4, 13), (12, 21), 2)
+        line((20, 13), (12, 21), 2)
+        line((8, 12), (11, 15), 2)
+        line((11, 15), (16, 9), 2)
+        return
+    if key == "archive":                   # scatola archivio
+        rect(3, 4, 18, 4, 2)
+        rect(4, 9, 16, 11, 2)
+        line((10, 12), (14, 12), 3)
+        return
+    if key == "trash":                     # rimozione
+        rect(6, 7, 12, 13, 2, 1)
+        line((4, 7), (20, 7), 2)
+        line((10, 4), (14, 4), 2)
+        line((10, 10), (10, 17))
+        line((14, 10), (14, 17))
+        return
+    if key == "gauge":                     # governor / tachimetro
+        arc(12, 15, 9, 10, 170, 2)
+        line((12, 15), (17, 8), 2)
+        circ(12, 15, 2, 0)
+        return
+    if key == "lang":                      # lingua
+        circ(12, 12, 9, 2)
+        line((3, 12), (21, 12))
+        arc(12, 12, 9, 60, 120)
+        line((12, 3), (12, 21))
+        arc(12, 3, 9, 230, 310)
+        return
     if key == "xorg":                      # monitor
         rect(2, 4, 20, 13, 2, 2)
         line((9, 21), (15, 21))

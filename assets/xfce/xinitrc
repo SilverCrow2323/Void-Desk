@@ -18,6 +18,13 @@ export GTK_OVERLAY_SCROLLING=0
 # gsettings su file (niente dconf-service): serve al fix dei popup blueman
 export GSETTINGS_BACKEND=keyfile
 
+# tastiera fisica e lingua desktop scelte in UPLINK
+command -v setxkbmap >/dev/null 2>&1 && setxkbmap "$VD_KBD" 2>/dev/null
+if [ -n "$VD_LANG" ] && [ "$VD_LANG" != "system" ]; then
+	export LANG="$VD_LANG.UTF-8"
+	export LC_ALL="$VD_LANG.UTF-8"
+fi
+
 xset s off -dpms 2>/dev/null
 
 # --- audio ---------------------------------------------------------------

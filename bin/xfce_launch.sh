@@ -17,6 +17,15 @@ grep -q '"lang": *"en"' "$DATA/desk_config.json" 2>/dev/null && VDLANG="en"
 DESKENV="$(sed -n 's/.*"desk_env": *"\([a-z]*\)".*/\1/p' \
 	"$DATA/desk_config.json" 2>/dev/null | head -1)"
 case "$DESKENV" in icewm|lxde|xfce) ;; *) DESKENV="xfce" ;; esac
+
+# preferenze uplink: lingua desktop, tastiera fisica, fuso orario
+VDLNG="$(sed -n 's/.*"desk_lang": *"\([A-Za-z_]*\)".*/\1/p' \
+	"$DATA/desk_config.json" 2>/dev/null | head -1)"
+VDKBD="$(sed -n 's/.*"kbd_x": *"\([a-z]*\)".*/\1/p' \
+	"$DATA/desk_config.json" 2>/dev/null | head -1)"
+VDTZ="$(sed -n 's|.*"tz": *"\([A-Za-z_/]*\)".*|\1|p' \
+	"$DATA/desk_config.json" 2>/dev/null | head -1)"
+[ -n "$VDKBD" ] || VDKBD="us"
 PROG() {
 	if [ "$VDLANG" = "en" ]; then
 		printf '%s|%s\n' "$1" "$3" >"$PROGRESS" 2>/dev/null
@@ -227,6 +236,24 @@ ensure_lines(os.path.join(mnt,
              "root/.config/glib-2.0/settings/keyfile"),
              "[org/blueman/general]",
              ["plugin-list=['!Networking', '!DhcpClient', '!PPPSupport']"])
+# fuso orario scelto in UPLINK > Void Clock (vale per tutto il chroot)
+try:
+    import json as _j
+    _tz = _j.load(open(os.path.join(os.path.dirname(mnt),
+                                    "desk_config.json"))).get("tz")
+except Exception:
+    _tz = None
+if _tz and os.path.exists(os.path.join(mnt, "usr/share/zoneinfo", _tz)):
+    lt = os.path.join(mnt, "etc/localtime")
+    try:
+        if os.path.islink(lt) or os.path.exists(lt):
+            os.remove(lt)
+        os.symlink("/usr/share/zoneinfo/" + _tz, lt)
+        open(os.path.join(mnt, "etc/timezone"), "w").write(_tz + "\n")
+        print("timezone:", _tz)
+    except OSError:
+        pass
+
 # chroot senza init: i postinst non devono provare a lanciare servizi
 prc = os.path.join(mnt, "usr/sbin/policy-rc.d")
 try:
@@ -336,13 +363,16 @@ sleep 0.2
 "$PY3" "$APP_DIR/bin/vd_bootanim.py" "$DESKENV" >>"$XLOG" 2>&1
 
 rm -f "$MNT/tmp/.vd_x_up" 2>/dev/null
+SLOG="$DATA/session_$DESKENV.log"
 echo "$(date) === avvio sessione $DESKENV ===" >>"$XLOG"
+echo "$(date) === avvio sessione ===" >>"$SLOG"
 	chroot "$MNT" /usr/bin/env \
 		HOME=/root USER=root LOGNAME=root SHELL=/bin/bash \
-		VD_ENV="$DESKENV" \
+		VD_ENV="$DESKENV" VD_KBD="$VDKBD" VD_LANG="$VDLNG" \
+		${VDTZ:+TZ="$VDTZ"} \
 		PATH=/usr/sbin:/usr/bin:/sbin:/bin \
 		/usr/bin/startx /root/.xinitrc -- :0 vt1 -novtswitch -keeptty \
-		>>"$XLOG" 2>&1
+		>>"$SLOG" 2>&1
 	RC=$?
 	echo "$(date) sessione terminata ($RC)" >>"$XLOG"
 	if [ -f "$MNT/tmp/.vd_restart" ]; then

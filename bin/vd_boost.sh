@@ -37,10 +37,12 @@ CHR() {
 		>>"$XLOG" 2>&1
 }
 
-_boost_enabled() {
-	grep -q '"boost": *false' "$DATA/desk_config.json" 2>/dev/null && return 1
-	return 0
+_flag_off() {	# _flag_off chiave  -> 0 se la chiave e' false
+	grep -q "\"$1\": *false" "$DATA/desk_config.json" 2>/dev/null
 }
+
+_swap_on() { ! _flag_off boost_swap && ! _flag_off boost; }
+_cpu_on()  { ! _flag_off boost_cpu && ! _flag_off boost; }
 
 _have_swap() {
 	[ "$(wc -l <"$VD_PROC_SWAPS" 2>/dev/null || echo 1)" -gt 1 ]
@@ -63,7 +65,7 @@ _info() {	# _info riga-it riga-en   -> accumulo in $DATA/.boost_info
 BOOST_SETUP() {
 	: >"$VD_STATE"
 	rm -f "$DATA/.boost_info"
-	if ! _boost_enabled; then
+	if ! _swap_on && ! _cpu_on; then
 		BLOG "disattivato dalle opzioni"
 		_info "disattivato dalle opzioni" "disabled in settings"
 		return 0
@@ -71,6 +73,8 @@ BOOST_SETUP() {
 
 	# ---- 1) governor -> performance -------------------------------------
 	GOVSET=0
+	_cpu_on || GOVSET=-1
+	[ "$GOVSET" = -1 ] || \
 	for POL in "$VD_SYSFS_CPU"/policy*; do
 		[ -e "$POL/scaling_governor" ] || continue
 		CUR="$(cat "$POL/scaling_governor" 2>/dev/null)"
@@ -87,7 +91,10 @@ BOOST_SETUP() {
 	fi
 
 	# ---- 2) swap ---------------------------------------------------------
-	if _have_swap; then
+	if ! _swap_on; then
+		BLOG "swap boost disattivato"
+		_info "SWAP: boost disattivato" "SWAP: boost disabled"
+	elif _have_swap; then
 		BLOG "swap gia' attiva sul sistema: non tocco nulla"
 		_info "SWAP: gia' attiva (muOS)" "SWAP: already active (muOS)"
 	else
